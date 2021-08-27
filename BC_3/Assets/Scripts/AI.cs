@@ -1,0 +1,90 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class AI : Movement
+{
+    Rigidbody2D rb2d;
+    float h, v;
+    [SerializeField]
+    LayerMask blockingLayer;
+    BulletController bulletController;
+    int currentSpeed;
+    public Health enemyHP;
+
+    int[] points = { 5, 4, 3 };
+
+    enum Direction { Up, Down, Left, Right };
+    void Start()
+    {
+        rb2d = GetComponent<Rigidbody2D>();
+        RandomDirection();
+        bulletController = GetComponentInChildren<BulletController>();
+        enemyHP = gameObject.GetComponent<Health>();
+        currentSpeed = enemyHP.currentHealth/2;
+        base.SetSpeed(points[currentSpeed - 1]);
+        Invoke("FireWhenWanted", Random.Range(1f, 3f));
+    }
+
+    public void RandomDirection()
+    {
+        CancelInvoke("RandomDirection");
+        List<Direction> lottery = new List<Direction>();
+        if (!Physics2D.Linecast(transform.position, (Vector2)transform.position + new Vector2(0, 1), blockingLayer))
+        {
+            lottery.Add(Direction.Right);
+        }
+        if (!Physics2D.Linecast(transform.position, (Vector2)transform.position + new Vector2(0, -1), blockingLayer))
+        {
+            lottery.Add(Direction.Left);
+        }
+        if (!Physics2D.Linecast(transform.position, (Vector2)transform.position + new Vector2(1, 0), blockingLayer))
+        {
+            lottery.Add(Direction.Up);
+        }
+        if (!Physics2D.Linecast(transform.position, (Vector2)transform.position + new Vector2(-1, 0), blockingLayer))
+        {
+            lottery.Add(Direction.Down);
+        }
+        Direction selection = lottery[Random.Range(0, lottery.Count)];
+        if (selection == Direction.Up)
+        {
+            v = 1;
+            h = 0;
+        }
+        if (selection == Direction.Down)
+        {
+            v = -1;
+            h = 0;
+        }
+        if (selection == Direction.Right)
+        {
+            v = 0;
+            h = 1;
+        }
+        if (selection == Direction.Left)
+        {
+            v = 0;
+            h = -1;
+        }
+        Invoke("RandomDirection", Random.Range(1, 3));
+    }
+
+    void FireWhenWanted()
+    {
+        print("FireWhenWanted");
+        bulletController.Fire();
+        Invoke("FireWhenWanted", Random.Range(1f, 3f));
+    }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        RandomDirection();
+    }
+
+    void FixedUpdate()
+    {
+        if (v != 0 && isMoving == false) StartCoroutine(MoveVertical(v, rb2d));
+        else if (h != 0 && isMoving == false) StartCoroutine(MoveHorizontal(h, rb2d));
+    }
+}
